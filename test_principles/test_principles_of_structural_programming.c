@@ -3,13 +3,15 @@
 #include <string.h>
 
 int StrLength(FILE *file);
-void extractWordBeforeBracket(const char *str);
+char *extractWordBeforeBracket(const char *str, char *previous_str);
 void SerchStr(char *file_name);
 void strrev(char *str);
 
 int main(int argc, char *argv[]) {
-  for(int i = 1; i < argc; i++)
+  for (int i = 1; i < argc; i++) {
+     printf("\n");
     SerchStr(argv[i]);
+  }
   return 1;
 }
 
@@ -21,9 +23,12 @@ void SerchStr(char *file_name) {
   int count_return = 0;
   int count_break = 0;
   int max_enclosure = 0;
+  char *previous_line = NULL;
+  char *func_name = NULL;
   FILE *file = fopen(file_name, "r");
   if (file == NULL) {
     fprintf(stderr, "grep: %s: No such file or directory", file_name);
+    return;
   }
   while (number != EOF) {
     int end_function = 0;
@@ -42,8 +47,9 @@ void SerchStr(char *file_name) {
       }
     }
     if (strchr(a, '{') != NULL) {
-      if (strchr(a, '(') != NULL && !enclosure) {
-        extractWordBeforeBracket(a);
+      if ((strchr(a, '(') != NULL || strchr(previous_line, '(') != NULL) &&
+          !enclosure) {
+        func_name = extractWordBeforeBracket(a, previous_line);
         countLine = 0;
       }
       enclosure++;
@@ -58,23 +64,33 @@ void SerchStr(char *file_name) {
     }
 
     if (end_function) {
-      printf("\t%d максимальная вложенность,\n ", max_enclosure - 1);
-      max_enclosure = 0;
-      printf("\t%d строк,\n ", countLine);
-      countLine = 0;
-      printf("\t%d ретернов,\n ", count_return);
-      count_return = 0;
-      printf("\t%d бриков\n", count_break);
-      count_break = 0;
-      end_function = 0;
-      max_enclosure = 0;
+      if (max_enclosure >= 5 || countLine > 50 || count_return >= 3 ||
+          count_break > 0)
+        if (func_name) {
+          printf("function %s :\n\n", func_name);
+          printf("\tenclouse: %d\n", max_enclosure - 1);
+          printf("\tcount string: %d \n", countLine);
+          printf("\treturns: %d\n", count_return);
+          printf("\tbreaks: %d\n\n", count_break);
+          printf("-------------------------------------------------------------"
+                 "---------------------\n");
+        }
+          max_enclosure = 0;
+          end_function = 0;
+          count_break = 0;
+          count_return = 0;
+          countLine = 0;
+          max_enclosure = 0;
     }
+    free(previous_line);
+    previous_line = calloc(strlen(a) + 1, sizeof(char));
+    strcpy(previous_line, a);
     free(a);
   }
   printf("\n");
   fclose(file);
 }
-int StrLength (FILE *file) {
+int StrLength(FILE *file) {
   int number;
   int count = 0;
   long set = ftell(file);
@@ -85,29 +101,36 @@ int StrLength (FILE *file) {
   fseek(file, set, SEEK_CUR);
   return count;
 }
-void extractWordBeforeBracket (const char *str) {
-  char word[100];
+char *extractWordBeforeBracket(const char *str, char *previous_str) {
+  char *line = NULL;
+  if (strchr(str, '(') == NULL) {
+    line = calloc(strlen(previous_str) + 1, sizeof(char));
+    strcpy(line, previous_str);
+  } else {
+    line = calloc(strlen(str) + 1, sizeof(char));
+    strcpy(line, str);
+  }
+  char *word = calloc(30, sizeof(char));
   int i, j = 0;
   int bracketPos = -1;
-  for (i = 0; str[i] != '\0'; i++) {
-    if (str[i] == '(') {
+  for (i = 0; line[i] != '\0'; i++) {
+    if (line[i] == '(') {
       bracketPos = i;
       break;
     }
   }
   for (i = bracketPos - 1; i >= 0; i--) {
-    if (str[i] == ' ' || i == 0) {
+    if (line[i] == ' ' || i == 0) {
       if (i == 0) {
-        word[j++] = str[i];
+        word[j++] = line[i];
       }
       break;
     }
-    word[j++] = str[i];
+    word[j++] = line[i];
   }
   word[j] = '\0';
   strrev(word);
-
-  printf("функция %s содержит:\n ", word);
+  return word;
 }
 
 void strrev(char *str) {
