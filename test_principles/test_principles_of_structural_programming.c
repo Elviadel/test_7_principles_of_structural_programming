@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "test_principles_of_structural_programming.h"
+
 int StrLength(FILE *file);
 char *extractWordBeforeBracket(const char *str, char *previous_str);
 void SerchStr(char *file_name);
@@ -9,7 +11,7 @@ void strrev(char *str);
 
 int main(int argc, char *argv[]) {
   for (int i = 1; i < argc; i++) {
-     printf("\n");
+    printf("\n");
     SerchStr(argv[i]);
   }
   return 1;
@@ -17,14 +19,14 @@ int main(int argc, char *argv[]) {
 
 void SerchStr(char *file_name) {
   char *a = NULL;
-  int countLine = 0;
+  composition_of_Function variables = {0};
   int number = 0;
   int enclosure = 0;
-  int count_return = 0;
-  int count_break = 0;
-  int max_enclosure = 0;
   char *previous_line = NULL;
   char *func_name = NULL;
+  int all_function = 0;
+  int succes_function = 0;
+
   FILE *file = fopen(file_name, "r");
   if (file == NULL) {
     fprintf(stderr, "grep: %s: No such file or directory", file_name);
@@ -32,17 +34,18 @@ void SerchStr(char *file_name) {
   }
   while (number != EOF) {
     int end_function = 0;
-    countLine++;
+    variables.count_line++;
     int length = StrLength(file);
     a = calloc((length + 2), sizeof(char));
     fgets(a, length + 1, file);
     number = fgetc(file);
     if (strchr(a, '}') != NULL) {
-      if (enclosure > max_enclosure) {
-        max_enclosure = enclosure;
+      if (enclosure > variables.max_enclosure) {
+        variables.max_enclosure = enclosure;
       }
       enclosure--;
       if (enclosure == 0) {
+        all_function++;
         end_function = 1;
       }
     }
@@ -50,43 +53,42 @@ void SerchStr(char *file_name) {
       if ((strchr(a, '(') != NULL || strchr(previous_line, '(') != NULL) &&
           !enclosure) {
         func_name = extractWordBeforeBracket(a, previous_line);
-        countLine = 0;
+        variables.count_line = 0;
       }
       enclosure++;
     }
 
     if (strstr(a, "return") != NULL) {
-      count_return++;
+      variables.count_return++;
     }
 
     if (strstr(a, "break") != NULL) {
-      count_break++;
+      variables.count_break++;
     }
 
     if (end_function) {
-      if (max_enclosure >= 5 || countLine > 50 || count_return >= 3 ||
-          count_break > 0)
+      if (variables.max_enclosure >= 5 || variables.count_line > 50 ||
+          variables.count_return >= 3 || variables.count_break > 0)
         if (func_name) {
-          printf("function %s :\n\n", func_name);
-          printf("\tenclouse: %d\n", max_enclosure - 1);
-          printf("\tcount string: %d \n", countLine);
-          printf("\treturns: %d\n", count_return);
-          printf("\tbreaks: %d\n\n", count_break);
+          printf("function %s :\n\tenclouse: %d\n\tcount string: %d "
+                 "\n\treturns: %d\n\tbreaks: %d\n",
+                 func_name, variables.max_enclosure - 1, variables.count_line,
+                 variables.count_return, variables.count_break);
           printf("-------------------------------------------------------------"
                  "---------------------\n");
+          succes_function++;
         }
-          max_enclosure = 0;
-          end_function = 0;
-          count_break = 0;
-          count_return = 0;
-          countLine = 0;
-          max_enclosure = 0;
+      end_function = 0;
+      composition_of_Function side_struct = {0};
+      variables = side_struct;
     }
     free(previous_line);
     previous_line = calloc(strlen(a) + 1, sizeof(char));
     strcpy(previous_line, a);
     free(a);
   }
+  printf("IN FILE %s: ALL FUNCTION  %d , SUCCESS %d, FAIL %d", file_name,
+         all_function, all_function - succes_function, succes_function);
   printf("\n");
   fclose(file);
 }
@@ -130,6 +132,9 @@ char *extractWordBeforeBracket(const char *str, char *previous_str) {
   }
   word[j] = '\0';
   strrev(word);
+  if (line) {
+    free(line);
+  }
   return word;
 }
 
