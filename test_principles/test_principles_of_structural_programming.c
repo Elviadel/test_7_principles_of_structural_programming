@@ -4,7 +4,7 @@
 #include <string.h>
 int handler_string(composition_of_Function *variables, char *line,
                    int count_line);
-
+int func_print(char* func_name, composition_of_Function variables);
 int StrLength(FILE *file);
 char *extractWordBeforeBracket(const char *str, char *previous_str);
 void SerchStr(char *file_name);
@@ -49,10 +49,12 @@ void SerchStr(char *file_name) {
       all_function++;
     }
     count_line = (check_line == -2) ? 1 : count_line;
+    free(a);
   }
   printf("IN FILE %s: ALL FUNCTION  %d , SUCCESS %d, FAIL %d", file_name,
          all_function, all_function - fail_func, fail_func);
   printf("\n");
+  free(variables);
   fclose(file);
 }
 
@@ -61,7 +63,7 @@ int handler_string(composition_of_Function *variables, char *line,
   variables->count_line = count_line;
 
   // 0 - fail func , 1 - succes func, -1 no end func, -2 start func
-  int is_func_succes = -1;
+  int check_func = -1;
   int end_function = 0;
   static char *previous_line = NULL;
   static char *func_name = NULL;
@@ -78,8 +80,9 @@ int handler_string(composition_of_Function *variables, char *line,
   if (strchr(line, '{') != NULL) {
     if ((strchr(line, '(') != NULL || strchr(previous_line, '(') != NULL) &&
         !variables->enclosure) {
+          if(func_name) free(func_name);
       func_name = extractWordBeforeBracket(line, previous_line);
-      is_func_succes = -2;
+      check_func = -2;
     }
     variables->enclosure++;
   }
@@ -87,30 +90,39 @@ int handler_string(composition_of_Function *variables, char *line,
   if (strstr(line, "return") != NULL)
     variables->count_return++;
 
-  if (strstr(line, "break") != NULL)
+  if (strstr(line, "break") != NULL){
     variables->count_break++;
-
-  if (end_function) {
-    if (func_name ) {
-      if (variables->max_enclosure > 4 || variables->count_line > 50 ||
-          variables->count_return >= 2 || variables->count_break > 0) {
-        printf("function %s :\n\tenclouse: %d\n\tcount string: %d "
-               "\n\treturns: %d\n\tbreaks: %d\n",
-               func_name, variables->max_enclosure - 1, variables->count_line,
-               variables->count_return, variables->count_break);
-        printf("-------------------------------------------------------------"
-               "---------------------\n");
-               is_func_succes = 1;
-      }
-      else{
-        is_func_succes = 0;
-      }
-    } 
   }
+    
+    if(end_function){
+      check_func = func_print(func_name, *variables);
+    }
+  
   free(previous_line);
   previous_line = calloc(strlen(line) + 1, sizeof(char));
   strcpy(previous_line, line);
-  return is_func_succes;
+  return check_func;
+}
+
+int func_print(char* func_name, composition_of_Function variables){
+  int check_func = -1;
+  
+    if (func_name ) {
+      if (variables.max_enclosure > 4 || variables.count_line > 50 ||
+          variables.count_return >= 2 || variables.count_break > 0) {
+        printf("function %s :\n\tenclouse: %d\n\tcount string: %d "
+               "\n\treturns: %d\n\tbreaks: %d\n",
+               func_name, variables.max_enclosure - 1, variables.count_line,
+               variables.count_return, variables.count_break);
+        printf("-------------------------------------------------------------"
+               "---------------------\n");
+               check_func = 1;
+      }
+      else{
+        check_func = 0;
+      }
+    } 
+  return check_func;
 }
 
 int StrLength(FILE *file) {
@@ -128,15 +140,9 @@ int StrLength(FILE *file) {
 char *extractWordBeforeBracket(const char *str, char *previous_str) {
   char *line = NULL;
   char *word = NULL;
-  if (strchr(str, '(') == NULL) {
-    line = calloc(strlen(previous_str) + 1, sizeof(char));
-    strcpy(line, previous_str);
-    word = calloc(30, sizeof(char));
-  } else {
-    line = calloc(strlen(str) + 1, sizeof(char));
-    strcpy(line, str);
-    word = calloc(30, sizeof(char));
-  }
+  line = calloc(strlen(strchr(str, '(') == NULL ? previous_str : str) + 1, sizeof(char));
+strcpy(line, strchr(str, '(') == NULL ? previous_str : str);
+word = calloc(30, sizeof(char));
   int i, j = 0;
   int bracketPos = -1;
   for (i = 0; line[i] != '\0'; i++) {
