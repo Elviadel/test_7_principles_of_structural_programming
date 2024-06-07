@@ -8,9 +8,9 @@
 
 вставить папку в проект 
 
-gcc test_principles/test_principles_of_structural_programming.c -о test_principle
+  gcc test_principles/test_principles_of_structural_programming.c -о test_principle
 
-./test_principle *.c
+  ./test_principle *.c
 
 
 
